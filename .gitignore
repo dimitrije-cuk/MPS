@@ -1,0 +1,4 @@
+*.exe
+*.cmd
+MPI_Matrix_Vector-Result.txt
+primes.txt
