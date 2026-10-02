@@ -1,75 +1,61 @@
-# MPS domaci zadaci
+# MPS Homework Assignments
 
-## OpenMPI Windows instalacija
+This repository contains MPI and OpenMP programming assignments.
 
-Instalirati **Microsoft MPI v10.1.3** sa [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?id=105289).
+## Installing Microsoft MPI on Windows
 
-Instalirati dve komponente:
+Install **Microsoft MPI v10.1.3** from the [Microsoft Download Center](https://www.microsoft.com/en-us/download/details.aspx?id=105289).
 
-* `msmpisetup.exe` – MPI runtime
-* `msmpisdk.msi` – headers and libraries (SDK)
+Install both components:
 
-```bash
+* `msmpisetup.exe` — MPI runtime
+* `msmpisdk.msi` — headers and libraries (SDK)
+
+Set the SDK paths in the command prompt:
+
+```bat
 set "MSMPI_INC=C:\Program Files (x86)\Microsoft SDKs\MPI\Include"
 set "MSMPI_LIB64=C:\Program Files (x86)\Microsoft SDKs\MPI\Lib\x64"
 ```
 
-## Zadatak 2.4
+## Assignment 2.4 — MPI All-to-All
 
-```bash
-# Windows build
+```bat
 gcc MPI_AllToAll_TwoDigit.c -I"%MSMPI_INC%" -L"%MSMPI_LIB64%" -lmsmpi -o MPI_AllToAll_TwoDigit
-
-# Run
 mpiexec -n 4 MPI_AllToAll_TwoDigit
 ```
 
-## Zadatak 3.2
+## Assignment 3.2 — MPI Block Sum
 
-```bash
-# Windows build
+```bat
 gcc MPI_Parallel_Sum_Block.c -I"%MSMPI_INC%" -L"%MSMPI_LIB64%" -lmsmpi -o MPI_Parallel_Sum_Block
-
-# Run
 mpiexec -n 4 MPI_Parallel_Sum_Block
 ```
 
-## Zadatak 3.3
+## Assignment 3.3 — MPI Vector Dot Product
 
-```bash
-# Windows build
+```bat
 gcc MPI_Vector_Multiplication.c -I"%MSMPI_INC%" -L"%MSMPI_LIB64%" -lmsmpi -o MPI_Vector_Multiplication
-
-# Run
 mpiexec -n 4 MPI_Vector_Multiplication 100000000
 ```
 
-## Zadatak 4.1
+## Assignment 4.1 — MPI Matrix-Vector Multiplication
 
-```bash
-# Windows build
+```bat
 gcc MPI_Matrix_Vector.c -I"%MSMPI_INC%" -L"%MSMPI_LIB64%" -lmsmpi -o MPI_Matrix_Vector
-
-# Run
 mpiexec -n 4 MPI_Matrix_Vector MPI_Matrix_Vector-Vector.txt MPI_Matrix_Vector-Matrix.txt
 ```
 
-## Zadatak 5.5
+## Assignment 5.5 — OpenMP Sum Comparison
 
-```bash
-# Windows build
+```bat
 gcc -O2 -Wall -Wextra -fopenmp OMP_Parallel_Sum_Comparison.c -o OMP_Parallel_Sum_Comparison
-
-# Run
 OMP_Parallel_Sum_Comparison 1000000000
 ```
 
-## Zadatak 6.2
+## Assignment 6.2 — OpenMP Sieve of Eratosthenes
 
-```bash
-# Windows build
+```bat
 gcc -O2 -Wall -Wextra -fopenmp OMP_Sieve_of_Eratosthenes.c -o OMP_Sieve_of_Eratosthenes
-
-# Run
 OMP_Sieve_of_Eratosthenes 10000000 primes.txt
 ```

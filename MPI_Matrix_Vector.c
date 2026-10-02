@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-// Rank 0 ispisuje grešku i prekida sve procese
+// Rank 0 prints the error and aborts all processes.
 static void die_rank0_abort(MPI_Comm comm, int rank, const char *msg)
 {
     if (rank == 0) {
@@ -11,7 +11,7 @@ static void die_rank0_abort(MPI_Comm comm, int rank, const char *msg)
     MPI_Abort(comm, 1);
 }
 
-// Prebrojava koliko double vrednosti postoji u fajlu
+// Counts the number of double values in the file.
 static int count_doubles_in_file(const char *fname)
 {
     FILE *f = fopen(fname, "r");
@@ -19,14 +19,14 @@ static int count_doubles_in_file(const char *fname)
 
     int count = 0;
     double tmp;
-    // Čitaj double po double
+    // Read one double value at a time.
     while (fscanf(f, "%lf", &tmp) == 1) count++;
 
     fclose(f);
     return count;
 }
 
-// Učitava vektor x dužine n iz fajla
+// Loads a vector x of length n from a file.
 static double *load_vector(const char *fname, int n)
 {
     FILE *f = fopen(fname, "r");
@@ -35,7 +35,7 @@ static double *load_vector(const char *fname, int n)
     double *x = (double *)malloc((size_t)n * sizeof(double));
     if (!x) { fclose(f); return NULL; }
 
-    for (int i = 0; i < n; i++) {             // Tačno n brojeva mora da postoji
+    for (int i = 0; i < n; i++) {             // The file must contain exactly n numbers.
         if (fscanf(f, "%lf", &x[i]) != 1) {
             free(x);
             fclose(f);
@@ -47,17 +47,17 @@ static double *load_vector(const char *fname, int n)
     return x;
 }
 
-// Učitava matricu A dimenzija n×n iz fajla (row-major: redovi jedan za drugim)
+// Loads an n×n matrix A from a file (row-major: rows stored consecutively).
 static double *load_matrix(const char *fname, int n)
 {
     FILE *f = fopen(fname, "r");
     if (!f) return NULL;
 
-    size_t m = (size_t)n * (size_t)n;         // Ukupan broj elemenata matrice
+    size_t m = (size_t)n * (size_t)n;         // Total number of matrix elements.
     double *A = (double *)malloc(m * sizeof(double));
     if (!A) { fclose(f); return NULL; }
 
-    for (size_t i = 0; i < m; i++) {          // Učitavamo m = n*n brojeva
+    for (size_t i = 0; i < m; i++) {          // Read m = n*n numbers.
         if (fscanf(f, "%lf", &A[i]) != 1) {
             free(A);
             fclose(f);
@@ -66,17 +66,17 @@ static double *load_matrix(const char *fname, int n)
     }
 
     fclose(f);
-    return A;                                 // A[i*n + j] je element u i-tom redu i j-toj koloni - row-major format
+    return A;                                 // A[i*n + j] is the element in row i, column j (row-major format).
 }
 
-// Upisuje rezultat y[0..n-1] u fajl kao listu brojeva
+// Writes the result y[0..n-1] to a file as a list of numbers.
 static void write_result(const char *fname, const double *y, int n)
 {
     FILE *f = fopen(fname, "w");
     if (!f) return;
 
     for (int i = 0; i < n; i++) {
-        fprintf(f, "%lf%s", y[i], (i + 1 == n) ? "" : " "); // Razdvajanje razmakom osim nakon poslednjeg elementa
+        fprintf(f, "%lf%s", y[i], (i + 1 == n) ? "" : " "); // Separate values with spaces, except after the last element.
     }
 
     fprintf(f, "\n");
@@ -88,10 +88,10 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 
     int rank, p;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);       // Rank procesa
-    MPI_Comm_size(MPI_COMM_WORLD, &p);          // Broj procesa
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);       // Process rank.
+    MPI_Comm_size(MPI_COMM_WORLD, &p);          // Number of processes.
 
-    // Program očekuje: ime_fajla_vektora i ime_fajla_matrice
+    // The program expects a vector filename and a matrix filename.
     if (argc != 3) {
         if (rank == 0)
             fprintf(stderr, "Usage: %s <vector_file> <matrix_file>\n", argv[0]);
@@ -99,12 +99,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    const char *vec_file = argv[1];           // Putanja do vektora x
-    const char *mat_file = argv[2];           // Putanja do matrice A
+    const char *vec_file = argv[1];           // Path to vector x.
+    const char *mat_file = argv[2];           // Path to matrix A.
 
-    int n = 0;  // Dimenzija vektora x(n), matrice A(n×n), i rezultata y(n)
+    int n = 0;  // Dimension of vector x(n), matrix A(n×n), and result y(n).
 
-    // Rank 0 određuje dimenziju n
+    // Rank 0 determines the dimension n.
     if (rank == 0) {
         n = count_doubles_in_file(vec_file);
         if (n <= 0) {
@@ -115,10 +115,10 @@ int main(int argc, char **argv)
 
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    int q = n / p;                            // Osnovni broj redova po procesu
-    int r = n % p;                            // Prvih r procesa dobija +1 red
+    int q = n / p;                            // Base number of rows per process.
+    int r = n % p;                            // The first r processes receive one extra row.
 
-    int local_rows = q + (rank < r ? 1 : 0);  // Broj redova za ovaj proces
+    int local_rows = q + (rank < r ? 1 : 0);  // Number of rows assigned to this process.
 
     int *sendcountsA = NULL;
     int *displsA     = NULL;
@@ -134,28 +134,28 @@ int main(int argc, char **argv)
         if (!sendcountsA || !displsA || !recvcountsY || !displsY)
             die_rank0_abort(MPI_COMM_WORLD, rank, "allocation failed");
 
-        int dispA = 0;                        // Offset unutar učitane matrice Afull
-        int dispY = 0;                        // Offset unutar rezultata y
+        int dispA = 0;                        // Offset within the loaded matrix Afull.
+        int dispY = 0;                        // Offset within result y.
 
         for (int i = 0; i < p; i++) {
-            int rows_i = q + (i < r ? 1 : 0); // Koliko redova dobija proces i
+            int rows_i = q + (i < r ? 1 : 0); // Number of rows assigned to process i.
 
-            sendcountsA[i] = rows_i * n;      // rows_i redova * n kolona
-            displsA[i]     = dispA;           // Gde u Afull počinje blok
+            sendcountsA[i] = rows_i * n;      // rows_i rows * n columns.
+            displsA[i]     = dispA;           // Starting index of the block in Afull.
 
-            recvcountsY[i] = rows_i;          // rows_i rezultata
-            displsY[i]     = dispY;           // Gde u y počinje blok
+            recvcountsY[i] = rows_i;          // rows_i results.
+            displsY[i]     = dispY;           // Starting index of the block in y.
 
-            dispA += sendcountsA[i];          // Sledeći blok matrice počinje posle ovog
-            dispY += recvcountsY[i];          // Sledeći blok rezultata počinje posle ovog
+            dispA += sendcountsA[i];          // The next matrix block starts after this one.
+            dispY += recvcountsY[i];          // The next result block starts after this one.
         }
     }
 
-    // Alokacija vektora x na svim procesima
+    // Allocate vector x on all processes.
     double *x = (double *)malloc((size_t)n * sizeof(double));
     if (!x) die_rank0_abort(MPI_COMM_WORLD, rank, "out of memory for vector x");
 
-    // Rank 0 učitava x
+    // Rank 0 loads x.
     if (rank == 0) {
         double *tmp = load_vector(vec_file, n);
         if (!tmp) {
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
     MPI_Bcast(x, n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Rank 0 učitava celu matricu A
+    // Rank 0 loads the entire matrix A.
     double *Afull = NULL;
     if (rank == 0) {
         Afull = load_matrix(mat_file, n);
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         }
     }
 
-    // Alokacija lokalnog dela matrice: local_rows × n
+    // Allocate the local matrix block: local_rows × n.
     double *Alocal = NULL;
     if (local_rows > 0) {
         Alocal = (double *)malloc((size_t)local_rows * (size_t)n * sizeof(double));
@@ -189,14 +189,14 @@ int main(int argc, char **argv)
         }
     }
 
-    // Scatterv šalje različit broj redova svakom procesu
+    // Scatterv sends a different number of rows to each process.
     MPI_Scatterv(
         Afull, sendcountsA, displsA, MPI_DOUBLE,
         Alocal, local_rows * n, MPI_DOUBLE,
         0, MPI_COMM_WORLD
     );
 
-    // Alokacija lokalnog rezultata ylocal
+    // Allocate the local result ylocal.
     double *ylocal = NULL;
     if (local_rows > 0) {
         ylocal = (double *)malloc((size_t)local_rows * sizeof(double));
@@ -209,15 +209,15 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < local_rows; i++) {
             double sum = 0.0;
-            const double *row = &Alocal[(size_t)i * (size_t)n]; // Početak i-tog reda
+            const double *row = &Alocal[(size_t)i * (size_t)n]; // Start of row i.
             for (int j = 0; j < n; j++) {
-                sum += row[j] * x[j];                           // Skalarni proizvod reda i vektora
+                sum += row[j] * x[j];                           // Dot product of row i and vector x.
             }
-            ylocal[i] = sum;                                    // Rezultat za taj red
+            ylocal[i] = sum;                                    // Result for this row.
         }
     }
 
-    // Rank 0 alocira ceo rezultat y (dužine n) jer samo on skuplja sve parcijalne delove
+    // Rank 0 allocates the full result y (length n) because it gathers all partial results.
     double *y = NULL;
     if (rank == 0) {
         y = (double *)malloc((size_t)n * sizeof(double));
@@ -234,11 +234,11 @@ int main(int argc, char **argv)
         0, MPI_COMM_WORLD
     );
 
-    // Rank 0 upisuje rezultat u fajl
+    // Rank 0 writes the result to a file.
     if (rank == 0)
         write_result("MPI_Matrix_Vector-Result.txt", y, n);
 
-    // Oslobađanje memorije
+    // Free allocated memory.
     free(x);
     free(Alocal);
     free(ylocal);

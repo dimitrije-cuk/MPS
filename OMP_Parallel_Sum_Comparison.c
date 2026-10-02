@@ -3,14 +3,14 @@
 #include <stdint.h>
 #include <omp.h>
 
-/* Paralelna suma koristeći OpenMP reduction mehanizam. */
+/* Computes the sum in parallel using the OpenMP reduction mechanism. */
 static long long sum_reduction(long long n, double *elapsed_sec)
 {
     double t0 = omp_get_wtime();
 
     long long sum = 0;
 
-    /* Svaka nit ima privatnu sumu, OpenMP ih automatski sabira na kraju. */
+    /* Each thread has a private sum; OpenMP combines them automatically at the end. */
     #pragma omp parallel for reduction(+:sum) schedule(static)
     for (long long i = 1; i <= n; ++i) {
         sum += i;
@@ -21,12 +21,12 @@ static long long sum_reduction(long long n, double *elapsed_sec)
     return sum;
 }
 
-/* Ručno računanje parcijalnih suma — ono što reduction radi interno. */
+/* Manually computes partial sums, as reduction does internally. */
 static long long sum_manual_partials(long long n, double *elapsed_sec)
 {
     int T = omp_get_max_threads();
 
-    /* Po jedna parcijalna suma po niti. */
+    /* Allocate one partial sum per thread. */
     long long *partial = (long long*)calloc((size_t)T, sizeof(long long));
     if (!partial) {
         fprintf(stderr, "Allocation failed.\n");
@@ -40,16 +40,16 @@ static long long sum_manual_partials(long long n, double *elapsed_sec)
         int tid = omp_get_thread_num();
         long long local = 0;
 
-        /* Svaka nit sabira svoj deo opsega. */
+        /* Each thread sums its assigned range. */
         #pragma omp for schedule(static)
         for (long long i = 1; i <= n; ++i) {
             local += i;
         }
 
-        partial[tid] = local;   // Upis lokalne sume
+        partial[tid] = local;   // Store the local sum.
     }
 
-    /* Završna serijska akumulacija parcijalnih suma. */
+    /* Accumulate the partial sums serially. */
     long long sum = 0;
     for (int t = 0; t < T; ++t) {
         sum += partial[t];
@@ -62,7 +62,7 @@ static long long sum_manual_partials(long long n, double *elapsed_sec)
     return sum;
 }
 
-/* Matematička formula za sumu 1..n — služi za proveru tačnosti. */
+/* Closed-form formula for the sum from 1 to n, used to verify correctness. */
 static long long sum_closed_form(long long n)
 {
     return (n * (n + 1)) / 2;
@@ -91,14 +91,14 @@ int main(int argc, char **argv)
 
     double t_red = 0.0, t_man = 0.0;
 
-    /* Jedno merenje za obe metode. */
+    /* Run one measurement for each method. */
     long long s_red = sum_reduction(n, &t_red);
     long long s_man = sum_manual_partials(n, &t_man);
 
     if (t_red < best_red) { best_red = t_red; sum_red_best = s_red; }
     if (t_man < best_man) { best_man = t_man; sum_man_best = s_man; }
 
-    /* Osnovna provera korektnosti. */
+    /* Basic correctness check. */
     int ok_red = (sum_red_best == expected);
     int ok_man = (sum_man_best == expected);
 
